@@ -7,7 +7,7 @@ export default function CalendarView() {
   const [selectedDate, setSelectedDate] = useState(new Date());
 
   useEffect(() => {
-    fetch('http://localhost:5000/api/loans', {
+    fetch('https://finance-manager-api-x4hh.onrender.com/api/loans', {
       headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
     })
       .then((res) => {

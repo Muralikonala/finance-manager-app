@@ -5,7 +5,7 @@ export default function DueDates() {
   const [loans, setLoans] = useState([]);
 
   useEffect(() => {
-    fetch('http://localhost:5000/api/loans', {
+    fetch('https://finance-manager-api-x4hh.onrender.com/api/loans', {
       headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
     })
       .then((res) => {

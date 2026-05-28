@@ -11,7 +11,7 @@ export default function Dashboard() {
   });
 
   useEffect(() => {
-    fetch('http://localhost:5000/api/loans', {
+    fetch('https://finance-manager-api-x4hh.onrender.com/api/loans', {
       headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
     })
       .then((res) => {
@@ -25,7 +25,7 @@ export default function Dashboard() {
   const handleAddLoan = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch('http://localhost:5000/api/loans', {
+      const response = await fetch('https://finance-manager-api-x4hh.onrender.com/api/loans', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -49,7 +49,7 @@ export default function Dashboard() {
     if (!window.confirm("Are you sure you want to delete this loan?")) return;
 
     try {
-      const response = await fetch(`http://localhost:5000/api/loans/${id}`, {
+      const response = await fetch(`https://finance-manager-api-x4hh.onrender.com/api/loans/${id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
       });
