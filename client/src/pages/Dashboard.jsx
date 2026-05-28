@@ -10,6 +10,7 @@ export default function Dashboard() {
     amount: '', interestRate: '', duration: '', dueDate: ''
   });
 
+  // Fetch all loans on load
   useEffect(() => {
     fetch('https://finance-manager-api-x4hh.onrender.com/api/loans', {
       headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
@@ -22,8 +23,23 @@ export default function Dashboard() {
       .catch((err) => console.error(err));
   }, []);
 
+  // Add a new loan (With automatic Total Amount calculation fix!)
   const handleAddLoan = async (e) => {
     e.preventDefault();
+    
+    // 1. Calculate the Total Amount (Principal + Interest)
+    const p = parseFloat(formData.amount);
+    const r = parseFloat(formData.interestRate);
+    const t = parseFloat(formData.duration);
+    const totalInterest = Math.round((p * r * t) / 100);
+    const calculatedTotal = p + totalInterest;
+
+    // 2. Combine the form data with our new calculated total
+    const finalDataToSend = {
+      ...formData,
+      totalAmount: calculatedTotal
+    };
+
     try {
       const response = await fetch('https://finance-manager-api-x4hh.onrender.com/api/loans', {
         method: 'POST',
@@ -31,7 +47,7 @@ export default function Dashboard() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(finalDataToSend)
       });
 
       if (response.ok) {
@@ -39,12 +55,16 @@ export default function Dashboard() {
         setLoans([...loans, savedLoan]); 
         setIsModalOpen(false);
         setFormData({ borrowerName: '', phoneNumber: '', aadhaarNumber: '', amount: '', interestRate: '', duration: '', dueDate: '' });
+      } else {
+        const errorData = await response.json();
+        console.error("Server rejected the data:", errorData);
       }
     } catch (err) {
-      console.error(err);
+      console.error("Network error:", err);
     }
   };
 
+  // Delete a loan permanently
   const handleDeleteLoan = async (id) => {
     if (!window.confirm("Are you sure you want to permanently delete this loan record?")) return;
 
@@ -62,6 +82,7 @@ export default function Dashboard() {
     }
   };
 
+  // Mark a loan as paid (Moves to History ledger)
   const handleMarkPaid = async (id) => {
     if (!window.confirm("Mark this loan as completely paid off? It will move to your History ledger.")) return;
 
@@ -84,6 +105,7 @@ export default function Dashboard() {
     }
   };
 
+  // Export to CSV feature
   const exportToCSV = () => {
     const active = loans.filter(l => l.status === 'active');
     const headers = ['Borrower Name', 'Phone Number', 'Aadhaar', 'Principal Amount', 'Interest Rate (%)', 'Duration (Months)', 'Due Date', 'Total Expected'];
@@ -108,6 +130,7 @@ export default function Dashboard() {
     document.body.removeChild(link);
   };
 
+  // Dashboard Stats Calculations
   const activeLoans = loans.filter(l => l.status === 'active');
   const totalLent = activeLoans.reduce((sum, l) => sum + l.amount, 0); 
   const overdueCount = activeLoans.filter(l => new Date(l.dueDate) < new Date()).length;
@@ -115,6 +138,7 @@ export default function Dashboard() {
   return (
     <div className="max-w-6xl mx-auto space-y-8">
       
+      {/* Header and Action Buttons */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mt-4 gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
@@ -130,6 +154,7 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex justify-between items-center">
           <div>
@@ -154,6 +179,7 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* Active Loans List */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="p-6 border-b border-gray-50">
           <h2 className="text-lg font-bold text-gray-900">Loans Given</h2>
@@ -208,6 +234,7 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* Add Loan Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-2xl w-full max-w-2xl overflow-hidden shadow-xl">
