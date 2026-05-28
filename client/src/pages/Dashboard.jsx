@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Users, TrendingUp, AlertCircle, X, Trash2 } from 'lucide-react';
+import { Plus, Users, TrendingUp, AlertCircle, X, Trash2, CheckCircle, Download } from 'lucide-react';
 
 export default function Dashboard() {
   const [loans, setLoans] = useState([]);
@@ -46,7 +46,7 @@ export default function Dashboard() {
   };
 
   const handleDeleteLoan = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this loan?")) return;
+    if (!window.confirm("Are you sure you want to permanently delete this loan record?")) return;
 
     try {
       const response = await fetch(`https://finance-manager-api-x4hh.onrender.com/api/loans/${id}`, {
@@ -62,21 +62,72 @@ export default function Dashboard() {
     }
   };
 
+  const handleMarkPaid = async (id) => {
+    if (!window.confirm("Mark this loan as completely paid off? It will move to your History ledger.")) return;
+
+    try {
+      const response = await fetch(`https://finance-manager-api-x4hh.onrender.com/api/loans/${id}`, {
+        method: 'PUT',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}` 
+        },
+        body: JSON.stringify({ status: 'paid' })
+      });
+
+      if (response.ok) {
+        const updatedLoan = await response.json();
+        setLoans(loans.map(loan => loan._id === id ? updatedLoan : loan));
+      }
+    } catch (err) {
+      console.error("Failed to update status:", err);
+    }
+  };
+
+  const exportToCSV = () => {
+    const active = loans.filter(l => l.status === 'active');
+    const headers = ['Borrower Name', 'Phone Number', 'Aadhaar', 'Principal Amount', 'Interest Rate (%)', 'Duration (Months)', 'Due Date', 'Total Expected'];
+    
+    const csvRows = active.map(loan => {
+      return [
+        loan.borrowerName, loan.phoneNumber, loan.aadhaarNumber || 'N/A',
+        loan.amount, loan.interestRate, loan.duration,
+        new Date(loan.dueDate).toLocaleDateString('en-US'),
+        loan.totalAmount || loan.amount
+      ].join(',');
+    });
+
+    const csvContent = [headers.join(','), ...csvRows].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'Active_Loans_Ledger.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const activeLoans = loans.filter(l => l.status === 'active');
   const totalLent = activeLoans.reduce((sum, l) => sum + l.amount, 0); 
-  const overdueCount = loans.filter(l => new Date(l.dueDate) < new Date() && l.status !== 'paid').length;
+  const overdueCount = activeLoans.filter(l => new Date(l.dueDate) < new Date()).length;
 
   return (
     <div className="max-w-6xl mx-auto space-y-8">
       
-      <div className="flex justify-between items-center mt-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mt-4 gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
           <p className="text-sm text-gray-500">Automated Loan Tracking System</p>
         </div>
-        <button onClick={() => setIsModalOpen(true)} className="bg-purple-600 hover:bg-purple-700 text-white px-5 py-2.5 rounded-lg font-medium flex items-center shadow-sm transition-colors">
-          <Plus size={18} className="mr-2" /> Add New Loan
-        </button>
+        <div className="flex space-x-3 w-full sm:w-auto">
+          <button onClick={exportToCSV} className="flex-1 sm:flex-none bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 px-4 py-2.5 rounded-lg font-medium flex justify-center items-center transition-colors">
+            <Download size={18} className="mr-2" /> Export Ledger
+          </button>
+          <button onClick={() => setIsModalOpen(true)} className="flex-1 sm:flex-none bg-purple-600 hover:bg-purple-700 text-white px-5 py-2.5 rounded-lg font-medium flex justify-center items-center shadow-sm transition-colors">
+            <Plus size={18} className="mr-2" /> Add New Loan
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -109,11 +160,11 @@ export default function Dashboard() {
           <p className="text-sm text-gray-500">Track all money you've lent and total returns expected</p>
         </div>
         <div className="divide-y divide-gray-50">
-          {loans.length === 0 ? (
-            <p className="p-6 text-center text-gray-500">No loans active.</p>
+          {activeLoans.length === 0 ? (
+            <p className="p-6 text-center text-gray-500">No active loans.</p>
           ) : (
-            loans.map((loan) => (
-              <div key={loan._id} className="p-6 flex items-center justify-between hover:bg-gray-50/50 transition-colors">
+            activeLoans.map((loan) => (
+              <div key={loan._id} className="p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-gray-50/50 transition-colors">
                 <div className="flex items-center space-x-4">
                   <div className="w-10 h-10 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center font-bold">
                     {loan.borrowerName.charAt(0).toUpperCase()}
@@ -124,25 +175,33 @@ export default function Dashboard() {
                   </div>
                 </div>
                 
-                <div className="text-right flex items-center justify-end space-x-4">
-                  <div>
+                <div className="flex items-center justify-between sm:justify-end space-x-4">
+                  <div className="text-right">
                     <p className="font-bold text-gray-900 text-lg">Total Due: ₹{(loan.totalAmount || loan.amount).toLocaleString('en-IN')}</p>
                     <span className={`inline-block mt-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                      new Date(loan.dueDate) < new Date() ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'
+                      new Date(loan.dueDate) < new Date() ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'
                     }`}>
                       {new Date(loan.dueDate) < new Date() ? 'Overdue' : 'Active'}
                     </span>
                   </div>
                   
-                  <button 
-                    onClick={() => handleDeleteLoan(loan._id)}
-                    className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors"
-                    title="Delete Loan"
-                  >
-                    <Trash2 size={20} />
-                  </button>
+                  <div className="flex space-x-2 border-l border-gray-200 pl-4">
+                    <button 
+                      onClick={() => handleMarkPaid(loan._id)}
+                      className="text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 p-2 rounded-lg transition-colors"
+                      title="Mark as Paid"
+                    >
+                      <CheckCircle size={22} />
+                    </button>
+                    <button 
+                      onClick={() => handleDeleteLoan(loan._id)}
+                      className="text-gray-400 hover:text-red-600 hover:bg-red-50 p-2 rounded-lg transition-colors"
+                      title="Delete Permanently"
+                    >
+                      <Trash2 size={22} />
+                    </button>
+                  </div>
                 </div>
-
               </div>
             ))
           )}

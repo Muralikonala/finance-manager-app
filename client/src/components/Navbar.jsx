@@ -7,6 +7,7 @@ export default function Navbar() {
     { name: 'Calendar', path: '/calendar' },
     { name: 'Due Dates', path: '/due-dates' },
     { name: 'Calculator', path: '/calculator' },
+    { name: 'History', path: '/history' },
   ];
 
   const handleLogout = () => {
@@ -49,7 +50,7 @@ export default function Navbar() {
               className="flex items-center space-x-2 bg-white border border-gray-200 text-gray-600 px-4 py-2 rounded-lg hover:bg-red-50 hover:text-red-600 hover:border-red-100 transition-all text-sm font-medium"
             >
               <LogOut size={16} />
-              <span>Logout</span>
+              <span className="hidden sm:inline">Logout</span>
             </button>
           </div>
         </div>

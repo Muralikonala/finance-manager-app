@@ -4,6 +4,7 @@ import Dashboard from './pages/Dashboard';
 import DueDates from './pages/DueDates';
 import Calculator from './pages/Calculator';
 import CalendarView from './pages/Calendar';
+import History from './pages/History';
 import Auth from './pages/Auth';
 
 const ProtectedRoute = ({ children }) => {
@@ -28,6 +29,7 @@ function App() {
             <Route path="/calendar" element={<ProtectedRoute><CalendarView /></ProtectedRoute>} />
             <Route path="/due-dates" element={<ProtectedRoute><DueDates /></ProtectedRoute>} />
             <Route path="/calculator" element={<ProtectedRoute><Calculator /></ProtectedRoute>} />
+            <Route path="/history" element={<ProtectedRoute><History /></ProtectedRoute>} />
             
             <Route path="*" element={<Navigate to={token ? "/dashboard" : "/auth"} replace />} />
           </Routes>
